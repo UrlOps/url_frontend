@@ -1,3 +1,55 @@
+<script setup>
+import { ref, onMounted } from 'vue';
+import apiClient from '../services/api';
+import Galaxy from '../components/Galaxy.vue';
+
+const showUI = ref(true);
+const toggleUI = () => {
+  showUI.value = !showUI.value;
+};
+
+const originalUrl = ref('');
+const urls = ref([]);
+const isModalVisible = ref(false);
+const newlyCreatedUrl = ref(null);
+const copySuccess = ref(false);
+
+const fetchUrls = async () => {
+  try {
+    const response = await apiClient.get('/api/urls');
+    urls.value = response.data.data.reverse();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const createShortUrl = async () => {
+  if (!originalUrl.value.trim()) return;
+  try {
+    const response = await apiClient.post('/api/urls', { originalUrl: originalUrl.value });
+    const newUrl = response.data.data;
+    urls.value.unshift(newUrl);
+    newlyCreatedUrl.value = newUrl;
+    isModalVisible.value = true;
+    originalUrl.value = '';
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const copyToClipboard = () => {
+  if (newlyCreatedUrl.value?.shortenUrl) {
+    navigator.clipboard.writeText(newlyCreatedUrl.value.shortenUrl);
+    copySuccess.value = true;
+    setTimeout(() => {
+      copySuccess.value = false;
+    }, 2000);
+  }
+};
+
+onMounted(fetchUrls);
+</script>
+
 <template>
   <div class="relative w-full h-screen overflow-hidden bg-black">
     <!-- Background -->
@@ -33,26 +85,40 @@
               Shorten
             </button>
           </form>
-
-          <!-- URL List -->
-          <div class="w-full max-w-4xl mt-8 overflow-y-auto max-h-48 pointer-events-auto" v-if="urls.length > 0">
-            <ul class="space-y-4">
-              <li v-for="url in urls" :key="url.id" 
-                  class="p-4 text-left text-white transition-all duration-300 bg-gray-900 bg-opacity-50 border border-gray-800 rounded-lg backdrop-blur-sm hover:bg-opacity-70 hover:border-gray-700">
-                <p class="mb-2 truncate">
-                  <span class="font-semibold text-gray-400">Original:</span> 
-                  <span class="ml-2 text-gray-300">{{ url.originalUrl }}</span>
-                </p>
-                <p>
-                  <span class="font-semibold text-gray-400">Short:</span> 
-                  <a :href="getFullShortUrl(url.shortUrl)" target="_blank" class="ml-2 text-blue-400 hover:underline">{{ getFullShortUrl(url.shortUrl) }}</a>
-                </p>
-              </li>
-            </ul>
-          </div>
         </main>
       </div>
     </transition>
+
+    <!-- Shortened URL Modal -->
+    <v-dialog v-model="isModalVisible" max-width="500" theme="dark">
+      <v-card class="bg-gray-900 border border-gray-800">
+        <v-card-title class="text-h5 text-white">
+          Short URL Created!
+        </v-card-title>
+        <v-card-text class="pa-4">
+          <p class="text-gray-300">Your shortened URL is ready to be shared:</p>
+          <v-text-field
+            :model-value="newlyCreatedUrl?.shortenUrl"
+            readonly
+            variant="solo-filled"
+            class="mt-4"
+            append-inner-icon="mdi-content-copy"
+            @click:append-inner="copyToClipboard"
+          ></v-text-field>
+           <p v-if="copySuccess" class="text-green-400 text-sm mt-2">Copied to clipboard!</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            text
+            @click="isModalVisible = false"
+          >
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Toggle Switch -->
     <div class="absolute bottom-5 right-5 z-20 flex items-end space-x-2 text-white pointer-events-auto custom-toggle">
@@ -88,43 +154,3 @@
   justify-content: flex-end;
 }
 </style>
-
-<script setup>
-import { ref, onMounted } from 'vue';
-import apiClient from '../services/api';
-import Galaxy from '../components/Galaxy.vue';
-
-const showUI = ref(true);
-const toggleUI = () => {
-  showUI.value = !showUI.value;
-};
-
-const originalUrl = ref('');
-const urls = ref([]);
-
-const fetchUrls = async () => {
-  try {
-    const response = await apiClient.get('/urls');
-    urls.value = response.data.reverse();
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const createShortUrl = async () => {
-  if (!originalUrl.value.trim()) return;
-  try {
-    const response = await apiClient.post('/urls', { originalUrl: originalUrl.value });
-    urls.value.unshift(response.data);
-    originalUrl.value = '';
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const getFullShortUrl = (shortUrl) => {
-  return `http://localhost:8080/r/${shortUrl}`;
-};
-
-onMounted(fetchUrls);
-</script>
