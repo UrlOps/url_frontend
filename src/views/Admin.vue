@@ -1,11 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import apiClient from '../services/api';
-import { Bar } from 'vue-chartjs'
+import Galaxy from '../components/Galaxy.vue';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
+const router = useRouter();
 const isLoggedIn = ref(false);
 const username = ref('');
 const password = ref('');
@@ -47,15 +49,11 @@ const login = async () => {
     const token = response.data.data.token;
     localStorage.setItem('admin-token', token);
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    isLoggedIn.value = true;
     errorMessage.value = '';
-    // 로그인 성공 후 데이터 로드
-    await fetchStats();
-    await fetchClickLogs({ page: 1, itemsPerPage: 10, sortBy: [] });
+    router.push('/admin/dashboard');
   } catch (error) {
     console.error('Login failed:', error);
     errorMessage.value = '로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.';
-    isLoggedIn.value = false;
   }
 };
 
@@ -109,199 +107,92 @@ onMounted(() => {
   const token = localStorage.getItem('admin-token');
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    isLoggedIn.value = true;
-    // 앱 마운트 시 데이터 로드
-    fetchStats();
-    fetchClickLogs({ page: 1, itemsPerPage: 10, sortBy: [] });
+    router.push('/admin/dashboard');
   }
 });
 </script>
 
 <template>
-  <v-container class="admin-container fill-height" fluid>
-    <v-row align="center" justify="center">
-      <v-col cols="12" sm="10" md="8" lg="6">
-        <!-- 로그인 폼 -->
-        <div v-if="!isLoggedIn" class="login-box pa-4">
-          <div class="login-key">
-            <v-icon>mdi-key-variant</v-icon>
-          </div>
-          <div class="login-title">
-            ADMIN PANEL
-          </div>
-
-          <div class="login-form">
-            <v-form @submit.prevent="login">
-              <div class="form-group">
-                <label class="form-control-label">USERNAME</label>
-                <v-text-field
-                  v-model="username"
-                  variant="underlined"
-                  required
-                ></v-text-field>
-              </div>
-              <div class="form-group">
-                <label class="form-control-label">PASSWORD</label>
-                <v-text-field
-                  v-model="password"
-                  type="password"
-                  variant="underlined"
-                  required
-                ></v-text-field>
-              </div>
-
-              <div class="loginbttm">
-                <div class="login-text">
-                   <v-alert v-if="errorMessage" type="error" density="compact" variant="text" class="pa-0">
+  <div class="admin-container">
+    <Galaxy class="absolute top-0 left-0 w-full h-full z-0" />
+    <v-container class="fill-height relative z-10" fluid>
+      <v-row align="center" justify="center">
+        <v-col cols="12" sm="8" md="6" lg="4">
+          <!-- 로그인 폼 -->
+          <div v-if="!isLoggedIn">
+            <v-card class="login-card" elevation="12">
+              <v-card-title class="text-center text-h5 font-weight-bold py-4">
+                Admin Login
+              </v-card-title>
+              <v-card-text>
+                <v-form @submit.prevent="login">
+                  <v-text-field
+                    v-model="username"
+                    label="Username"
+                    prepend-inner-icon="mdi-account"
+                    variant="outlined"
+                    required
+                    class="mb-4"
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="password"
+                    label="Password"
+                    type="password"
+                    prepend-inner-icon="mdi-lock"
+                    variant="outlined"
+                    required
+                  ></v-text-field>
+                  <v-alert v-if="errorMessage" type="error" density="compact" class="mt-4">
                     {{ errorMessage }}
                   </v-alert>
-                </div>
-                <div class="login-button">
-                  <v-btn type="submit" variant="outlined" class="login-btn">LOGIN</v-btn>
-                </div>
-              </div>
-            </v-form>
+                  <v-btn type="submit" color="primary" block size="large" class="mt-6">
+                    Login
+                  </v-btn>
+                </v-form>
+              </v-card-text>
+            </v-card>
           </div>
-        </div>
-
-        <!-- 관리자 대시보드 -->
-        <div v-else>
-          <v-card color="grey-darken-3">
-            <v-toolbar color="primary">
-              <v-toolbar-title>관리자 대시보드</v-toolbar-title>
-              <v-spacer></v-spacer>
-              <v-btn icon @click="logout">
-                <v-icon>mdi-logout</v-icon>
-              </v-btn>
-            </v-toolbar>
-            <v-card-text>
-              <h2 class="mb-4">일별 클릭 통계</h2>
-              <v-sheet color="grey-darken-2" class="pa-4">
-                 <Bar v-if="chartData.labels && chartData.labels.length" :data="chartData" :options="chartOptions" />
-              </v-sheet>
-              
-              <h2 class="mt-8 mb-4">클릭 로그</h2>
-              <v-data-table-server
-                :headers="logHeaders"
-                :items="clickLogs"
-                :items-length="totalLogs"
-                :loading="loadingLogs"
-                @update:options="fetchClickLogs"
-                class="elevation-1"
-                theme="dark"
-              ></v-data-table-server>
-            </v-card-text>
-          </v-card>
-        </div>
-      </v-col>
-    </v-row>
-  </v-container>
+        </v-col>
+      </v-row>
+    </v-container>
+  </div>
 </template>
 
 <style scoped>
 .admin-container {
-  background: #222D32;
-  font-family: 'Roboto', sans-serif;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.login-box {
-    margin-top: 75px;
-    background: #1A2226;
-    text-align: center;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+.login-card {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  color: white;
 }
 
-.login-key {
-    height: 100px;
-    line-height: 100px;
+:deep(.v-card-title) {
+  color: #eee;
 }
 
-.login-key .v-icon {
-    font-size: 80px;
-    background: -webkit-linear-gradient(#27EF9F, #0DB8DE);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.login-title {
-    margin-top: 15px;
-    text-align: center;
-    font-size: 30px;
-    letter-spacing: 2px;
-    font-weight: bold;
-    color: #ECF0F5;
-}
-
-.login-form {
-    margin-top: 25px;
-    text-align: left;
-}
-
-.form-group {
-    margin-bottom: 40px;
-    outline: 0px;
-}
-
-.form-control-label {
-    font-size: 10px;
-    color: #6C6C6C;
-    font-weight: bold;
-    letter-spacing: 1px;
-}
-
-.login-btn {
-    border-color: #0DB8DE;
-    color: #0DB8DE;
-    border-radius: 0px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-}
-
-.login-btn:hover {
-    background-color: #0DB8DE;
-    color: white;
-}
-
-.loginbttm {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0px;
-}
-
-.login-button {
-    text-align: right;
-}
-
-.login-text {
-    text-align: left;
-    color: #A2A4A4;
-}
-
-/* Vuetify v-text-field customization */
-:deep(.v-text-field) {
-  color: #ECF0F5;
-}
-
-:deep(.v-text-field__details) {
-  display: none;
-}
-
-:deep(.v-input--density-default .v-field__input) {
-  padding-top: 10px;
-  padding-bottom: 6px;
+:deep(.v-label) {
+  color: #bbb !important;
 }
 
 :deep(input) {
-  font-weight: bold !important;
+  color: white !important;
 }
 
-:deep(.v-field--variant-underlined .v-field__outline::before) {
-  border-color: #0DB8DE;
+:deep(.v-field__outline) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
-:deep(.v-field--variant-underlined .v-field__outline::after) {
-  border-color: #27EF9F;
+:deep(.v-btn) {
+  background-image: linear-gradient(to right, #27EF9F, #0DB8DE);
+  color: white;
+  font-weight: bold;
 }
 </style> 
