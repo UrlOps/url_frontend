@@ -54,12 +54,6 @@ onMounted(fetchUrls);
   <div class="relative w-full h-screen overflow-hidden bg-black">
     <!-- Background -->
     <Galaxy 
-      :mouse-repulsion="true"
-      :mouse-interaction="true"
-      :density="1.5"
-      :glow-intensity="0.5"
-      :saturation="0.8"
-      :hue-shift="240"
       class="absolute top-0 left-0 w-full h-full z-0"
     />
 
