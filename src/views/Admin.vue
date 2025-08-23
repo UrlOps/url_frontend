@@ -3,42 +3,12 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '../services/api';
 import Galaxy from '../components/Galaxy.vue';
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
-
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const router = useRouter();
 const isLoggedIn = ref(false);
 const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
-
-// Log table state
-const clickLogs = ref([]);
-const logHeaders = ref([
-  { title: 'ID', key: 'id', align: 'start' },
-  { title: 'Short Key', key: 'shortKey' },
-  { title: 'Clicked At', key: 'clickedAt' },
-  { title: 'User Agent', key: 'userAgent' },
-  { title: 'Country', key: 'country' },
-]);
-const totalLogs = ref(0);
-const loadingLogs = ref(true);
-
-// Chart state
-const chartData = ref({
-  labels: [],
-  datasets: [{
-    label: '클릭 수',
-    backgroundColor: '#f87979',
-    data: []
-  }]
-});
-const chartOptions = ref({
-  responsive: true,
-  maintainAspectRatio: false
-});
-
 
 const login = async () => {
   try {
@@ -47,7 +17,7 @@ const login = async () => {
       password: password.value,
     });
     const token = response.data.data.token;
-    localStorage.setItem('admin-token', token);
+    localStorage.setItem('token', token);
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     errorMessage.value = '';
     router.push('/admin/dashboard');
@@ -57,54 +27,8 @@ const login = async () => {
   }
 };
 
-const logout = () => {
-  localStorage.removeItem('admin-token');
-  delete apiClient.defaults.headers.common['Authorization'];
-  isLoggedIn.value = false;
-  clickLogs.value = [];
-  chartData.value = { labels: [], datasets: [{ data: [], label: '클릭 수', backgroundColor: '#f87979' }] };
-};
-
-const fetchClickLogs = async ({ page, itemsPerPage, sortBy }) => {
-  loadingLogs.value = true;
-  try {
-    let url = `/api/admin/logs?page=${page - 1}&size=${itemsPerPage}`;
-    if (sortBy && sortBy.length > 0) {
-      url += `&sort=${sortBy[0].key},${sortBy[0].order}`;
-    }
-
-    const response = await apiClient.get(url);
-    clickLogs.value = response.data.data.content;
-    totalLogs.value = response.data.data.totalElements;
-  } catch (error) {
-    console.error('Error fetching click logs:', error);
-    if (error.response && error.response.status === 401) {
-      logout();
-    }
-  } finally {
-    loadingLogs.value = false;
-  }
-};
-
-const fetchStats = async () => {
-  try {
-    const response = await apiClient.get('/api/admin/stats');
-    const stats = response.data.data;
-    if (stats) {
-      chartData.value.labels = stats.map(s => s.date).reverse();
-      chartData.value.datasets[0].data = stats.map(s => s.count).reverse();
-    }
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-    if (error.response && error.response.status === 401) {
-      logout();
-    }
-  }
-};
-
-
 onMounted(() => {
-  const token = localStorage.getItem('admin-token');
+  const token = localStorage.getItem('token');
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     router.push('/admin/dashboard');
@@ -114,7 +38,7 @@ onMounted(() => {
 
 <template>
   <div class="admin-container">
-    <Galaxy class="absolute top-0 left-0 w-full h-full z-0" />
+    <Galaxy class="absolute top-0 left-0 w-full h-full z-0"/>
     <v-container class="fill-height relative z-10" fluid>
       <v-row align="center" justify="center">
         <v-col cols="12" sm="8" md="6" lg="4">
@@ -133,7 +57,7 @@ onMounted(() => {
                     variant="outlined"
                     required
                     class="mb-4"
-                  ></v-text-field>
+                  />
                   <v-text-field
                     v-model="password"
                     label="Password"
@@ -141,7 +65,7 @@ onMounted(() => {
                     prepend-inner-icon="mdi-lock"
                     variant="outlined"
                     required
-                  ></v-text-field>
+                  />
                   <v-alert v-if="errorMessage" type="error" density="compact" class="mt-4">
                     {{ errorMessage }}
                   </v-alert>
