@@ -95,7 +95,7 @@ be/url_backend/
 
 ## 서비스 아키텍처
 
-<img width="1811" height="1034" alt="image" src="https://github.com/user-attachments/assets/6c221b6a-3e0c-49ac-a282-b8aa7d9c0e59" />
+<img width="1812" height="1034" alt="image" src="https://github.com/user-attachments/assets/d4dc4ece-882d-447c-b621-a320d68f3f63" />
 
 <br><br>
 
