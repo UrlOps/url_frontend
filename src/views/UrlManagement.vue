@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import apiClient from '../services/api';
 import Galaxy from '../components/Galaxy.vue';
 
@@ -9,26 +9,15 @@ const toggleUI = () => {
 };
 
 const originalUrl = ref('');
-const urls = ref([]);
 const isModalVisible = ref(false);
 const newlyCreatedUrl = ref(null);
 const copySuccess = ref(false);
-
-const fetchUrls = async () => {
-  try {
-    const response = await apiClient.get('/api/urls');
-    urls.value = response.data.data.reverse();
-  } catch (error) {
-    console.error(error);
-  }
-};
 
 const createShortUrl = async () => {
   if (!originalUrl.value.trim()) return;
   try {
     const response = await apiClient.post('/api/urls', { originalUrl: originalUrl.value });
     const newUrl = response.data.data;
-    urls.value.unshift(newUrl);
     newlyCreatedUrl.value = newUrl;
     isModalVisible.value = true;
     originalUrl.value = '';
@@ -47,7 +36,6 @@ const copyToClipboard = () => {
   }
 };
 
-onMounted(fetchUrls);
 </script>
 
 <template>
