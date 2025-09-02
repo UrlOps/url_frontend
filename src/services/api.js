@@ -1,14 +1,7 @@
 import axios from 'axios';
 
-const getBaseURL = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return '/';
-};
-
 const apiClient = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: '/',
   headers: {
     'Content-Type': 'application/json',
   },
